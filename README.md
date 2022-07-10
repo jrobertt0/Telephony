@@ -12,6 +12,8 @@
 |:exclamation: This plugin currently only works on Android Platform|
 |------------------------------------------------------------------|
 
+This is a Forked Repo from shounakmulay/Telephony
+
 
 A Flutter plugin to use telephony features such as
 - Send SMS Messages
