@@ -238,7 +238,8 @@ class SmsController(private val context: Context) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    @RequiresPermission(allOf = [Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE])
+    @RequiresPermission(allOf = [Manifest.permission.READ_PHONE_STATE])
+    // @RequiresPermission(allOf = [Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE])
     fun getServiceState(): Int? {
         val serviceState = getTelephonyManager().serviceState
         return serviceState?.state
