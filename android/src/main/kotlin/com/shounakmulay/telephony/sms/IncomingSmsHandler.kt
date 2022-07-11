@@ -1,14 +1,17 @@
 package com.shounakmulay.telephony.sms
 
+import android.Manifest
 import android.app.ActivityManager
 import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Process
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.telephony.SubscriptionManager
+import android.util.Log
 import com.shounakmulay.telephony.utils.Constants
 import com.shounakmulay.telephony.utils.Constants.HANDLE
 import com.shounakmulay.telephony.utils.Constants.HANDLE_BACKGROUND_MESSAGE
@@ -44,18 +47,17 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         var foregroundSmsChannel: MethodChannel? = null
     }
 
-    private val subscriptionManager by lazy { getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager }
-
     override fun onReceive(context: Context, intent: Intent?) {
         ContextHolder.applicationContext = context.applicationContext
-        val simSlotIndexLastSms: Int? = null
+        var simSlotIndexLastSms: Int? = null
         val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
+        val subscriptionManager =  context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
 
         try {
             val subscriptionId = intent?.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
-            val slotIndex = subscriptionManager
-                    .activeSubscriptionInfoList
+            val slotIndex =
+                subscriptionManager.activeSubscriptionInfoList
                     ?.find { it.subscriptionId == subscriptionId }
                     ?.simSlotIndex ?: -100
 
@@ -86,8 +88,8 @@ class IncomingSmsReceiver : BroadcastReceiver() {
             if (index > 0) {
                 messageMap[MESSAGE_BODY] = (messageMap[MESSAGE_BODY] as String)
                         .plus(smsMessage.messageBody.trim())
-                messageMap[SIM_SLOT] = simSlot.toString()
             }
+            messageMap[SIM_SLOT] = simSlot.toString()
         }
         if (IncomingSmsHandler.isApplicationForeground(context)) {
             val args = HashMap<String, Any>()
