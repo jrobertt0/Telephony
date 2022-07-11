@@ -42,9 +42,13 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         var foregroundSmsChannel: MethodChannel? = null
     }
 
+    fun isAndroid11Plus() : Boolean {
+        return VERSION.SDK_INT >= VERSION_CODES.R
+    }
+
     override fun onReceive(context: Context, intent: Intent?) {
         ContextHolder.applicationContext = context.applicationContext
-        val simSlotIndexLastSms: Int?
+        val simSlotIndexLastSms: Int? = null
         val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
         try {
@@ -86,13 +90,13 @@ class IncomingSmsReceiver : BroadcastReceiver() {
      * [IncomingSmsHandler.executeDartCallbackInBackgroundIsolate] with the SMS.
      *
      */
-    private fun processIncomingSms(context: Context, smsList: List<SmsMessage>, simSlot: Int = -1) {
+    private fun processIncomingSms(context: Context, smsList: List<SmsMessage>, simSlot: Int? = -1) {
         val messageMap = smsList.first().toMap()
         smsList.forEachIndexed { index, smsMessage ->
             if (index > 0) {
                 messageMap[MESSAGE_BODY] = (messageMap[MESSAGE_BODY] as String)
                         .plus(smsMessage.messageBody.trim())
-                messageMap[SIM_SLOT] = simSlot.toString()
+                messageMap[SIM_SLOT] = simSlot!.toString()
             }
         }
         if (IncomingSmsHandler.isApplicationForeground(context)) {
