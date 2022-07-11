@@ -643,7 +643,7 @@ class SmsMessage {
           this.serviceCenterAddress = value;
           break;
         case _SmsProjections.SIM_SLOT:
-          this.simSlot = value;
+          this.simSlot = int.tryParse(value);
           break;
       }
     }
