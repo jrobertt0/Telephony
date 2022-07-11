@@ -574,6 +574,7 @@ class SmsMessage {
   SmsType? type;
   SmsStatus? status;
   String? serviceCenterAddress;
+  int? simSlot;
 
   /// ## Do not call this method. This method is visible only for testing.
   @visibleForTesting
@@ -640,6 +641,9 @@ class SmsMessage {
           break;
         case _SmsProjections.SERVICE_CENTER_ADDRESS:
           this.serviceCenterAddress = value;
+          break;
+        case _SmsProjections.SIM_SLOT:
+          this.simSlot = value;
           break;
       }
     }

@@ -79,6 +79,8 @@ class _SmsProjections {
   static const String SUBSCRIPTION_ID = "sub_id";
   static const String THREAD_ID = "thread_id";
   static const String TYPE = "type";
+
+  static const String SIM_SLOT = "sim_slot";
 }
 
 ///
@@ -115,6 +117,7 @@ class SmsColumn extends _TelephonyColumn {
   static const SUBSCRIPTION_ID = SmsColumn._(_SmsProjections.SUBSCRIPTION_ID);
   static const THREAD_ID = SmsColumn._(_SmsProjections.THREAD_ID);
   static const TYPE = SmsColumn._(_SmsProjections.TYPE);
+  static const SIM_SLOT = SmsColumn._(_SmsProjections.SIM_SLOT);
 
   @override
   String get _name => _columnName;
@@ -148,7 +151,8 @@ const INCOMING_SMS_COLUMNS = [
   SmsColumn._(_SmsProjections.MESSAGE_BODY),
   SmsColumn._(_SmsProjections.TIMESTAMP),
   SmsColumn._(_SmsProjections.SERVICE_CENTER_ADDRESS),
-  SmsColumn.STATUS
+  SmsColumn.STATUS,
+  SmsColumn._(_SmsProjections.SIM_SLOT)
 ];
 
 const DEFAULT_CONVERSATION_COLUMNS = [

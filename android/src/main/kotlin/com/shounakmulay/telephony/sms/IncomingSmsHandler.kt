@@ -44,10 +44,35 @@ class IncomingSmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
         ContextHolder.applicationContext = context.applicationContext
+        val simSlotIndexLastSms: Int?
         val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
+        try {
+            val slotIndex: Int = when {
+                isAndroid11Plus() -> {
+                    intent.getIntExtra(SubscriptionManager.EXTRA_SLOT_INDEX, -100)
+                }
+                else -> {
+                    val subscriptionId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
+                    if (!hasPhonePermission()) {
+                        -100
+                    } else {
+                        subscriptionManager
+                                .activeSubscriptionInfoList
+                                ?.find { it.subscriptionId == subscriptionId }
+                                ?.simSlotIndex ?: -100
+                    }
+                }
+            }
+
+            simSlotIndexLastSms = if (slotIndex != -100) slotIndex.plus(1) else slotIndex // make it 1-index instead of 0-indexed so corresponds with physical slots 1 and 2
+
+        } catch (e: Exception) {
+            Log.e("SMSMonitor", "Error while getting SIM slot index for incoming SMS")
+        }
+
         messagesGroupedByOriginatingAddress.forEach { group ->
-            processIncomingSms(context, group.value)
+            processIncomingSms(context, group.value, simSlotIndexLastSms)
         }
     }
 
@@ -61,12 +86,13 @@ class IncomingSmsReceiver : BroadcastReceiver() {
      * [IncomingSmsHandler.executeDartCallbackInBackgroundIsolate] with the SMS.
      *
      */
-    private fun processIncomingSms(context: Context, smsList: List<SmsMessage>) {
+    private fun processIncomingSms(context: Context, smsList: List<SmsMessage>, simSlot: Int = -1) {
         val messageMap = smsList.first().toMap()
         smsList.forEachIndexed { index, smsMessage ->
             if (index > 0) {
                 messageMap[MESSAGE_BODY] = (messageMap[MESSAGE_BODY] as String)
-                    .plus(smsMessage.messageBody.trim())
+                        .plus(smsMessage.messageBody.trim())
+                messageMap[SIM_SLOT] = simSlot.toString()
             }
         }
         if (IncomingSmsHandler.isApplicationForeground(context)) {
@@ -75,9 +101,9 @@ class IncomingSmsReceiver : BroadcastReceiver() {
             foregroundSmsChannel?.invokeMethod(ON_MESSAGE, args)
         } else {
             val preferences =
-                context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                    context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
             val disableBackground =
-                preferences.getBoolean(SHARED_PREFS_DISABLE_BACKGROUND_EXE, false)
+                    preferences.getBoolean(SHARED_PREFS_DISABLE_BACKGROUND_EXE, false)
             if (!disableBackground) {
                 processInBackground(context, messageMap)
             }
@@ -89,9 +115,9 @@ class IncomingSmsReceiver : BroadcastReceiver() {
             if (!isIsolateRunning.get()) {
                 initialize(context)
                 val preferences =
-                    context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                        context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
                 val backgroundCallbackHandle =
-                    preferences.getLong(SHARED_PREFS_BACKGROUND_SETUP_HANDLE, 0)
+                        preferences.getLong(SHARED_PREFS_BACKGROUND_SETUP_HANDLE, 0)
                 startBackgroundIsolate(context, backgroundCallbackHandle)
                 backgroundMessageQueue.add(sms)
             } else {
@@ -128,7 +154,7 @@ fun SmsMessage.toMap(): HashMap<String, Any?> {
 object IncomingSmsHandler : MethodChannel.MethodCallHandler {
 
     internal val backgroundMessageQueue =
-        Collections.synchronizedList(mutableListOf<HashMap<String, Any?>>())
+            Collections.synchronizedList(mutableListOf<HashMap<String, Any?>>())
     internal var isIsolateRunning = AtomicBoolean(false)
 
     private lateinit var backgroundChannel: MethodChannel
@@ -148,13 +174,13 @@ object IncomingSmsHandler : MethodChannel.MethodCallHandler {
         val flutterCallback = FlutterCallbackInformation.lookupCallbackInformation(callbackHandle)
 
         val dartEntryPoint =
-            DartExecutor.DartCallback(context.assets, appBundlePath, flutterCallback)
+                DartExecutor.DartCallback(context.assets, appBundlePath, flutterCallback)
 
         backgroundFlutterEngine = FlutterEngine(context, flutterLoader, FlutterJNI())
         backgroundFlutterEngine.dartExecutor.executeDartCallback(dartEntryPoint)
 
         backgroundChannel =
-            MethodChannel(backgroundFlutterEngine.dartExecutor, Constants.CHANNEL_SMS_BACKGROUND)
+                MethodChannel(backgroundFlutterEngine.dartExecutor, Constants.CHANNEL_SMS_BACKGROUND)
         backgroundChannel.setMethodCallHandler(this)
     }
 
@@ -182,12 +208,12 @@ object IncomingSmsHandler : MethodChannel.MethodCallHandler {
      * Invoke the method on background channel to handle the message
      */
     internal fun executeDartCallbackInBackgroundIsolate(
-        context: Context,
-        message: HashMap<String, Any?>
+            context: Context,
+            message: HashMap<String, Any?>
     ) {
         if (!this::backgroundChannel.isInitialized) {
             throw RuntimeException(
-                "setBackgroundChannel was not called before messages came in, exiting."
+                    "setBackgroundChannel was not called before messages came in, exiting."
             )
         }
 
@@ -219,7 +245,7 @@ object IncomingSmsHandler : MethodChannel.MethodCallHandler {
         // Store background message handle in shared preferences so it can be retrieved
         // by other application instances.
         val preferences =
-            context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
         preferences.edit().putLong(SHARED_PREFS_BACKGROUND_MESSAGE_HANDLE, handle).apply()
 
     }
@@ -228,15 +254,15 @@ object IncomingSmsHandler : MethodChannel.MethodCallHandler {
         // Store background setup handle in shared preferences so it can be retrieved
         // by other application instances.
         val preferences =
-            context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                context.getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
         preferences.edit().putLong(SHARED_PREFS_BACKGROUND_SETUP_HANDLE, setupBackgroundHandle)
-            .apply()
+                .apply()
     }
 
     private fun getBackgroundMessageHandle(context: Context): Long {
         return context
-            .getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
-            .getLong(SHARED_PREFS_BACKGROUND_MESSAGE_HANDLE, 0)
+                .getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE)
+                .getLong(SHARED_PREFS_BACKGROUND_MESSAGE_HANDLE, 0)
     }
 
     fun isApplicationForeground(context: Context): Boolean {
@@ -261,8 +287,8 @@ object IncomingSmsHandler : MethodChannel.MethodCallHandler {
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         if (SmsAction.fromMethod(call.method) == SmsAction.BACKGROUND_SERVICE_INITIALIZED) {
             onChannelInitialized(
-                ContextHolder.applicationContext
-                    ?: throw RuntimeException("Context not initialised!")
+                    ContextHolder.applicationContext
+                            ?: throw RuntimeException("Context not initialised!")
             )
         }
     }
