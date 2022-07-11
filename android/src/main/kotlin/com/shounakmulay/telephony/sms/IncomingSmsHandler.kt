@@ -8,11 +8,13 @@ import android.content.Intent
 import android.os.Process
 import android.provider.Telephony
 import android.telephony.SmsMessage
+import android.telephony.SubscriptionManager
 import com.shounakmulay.telephony.utils.Constants
 import com.shounakmulay.telephony.utils.Constants.HANDLE
 import com.shounakmulay.telephony.utils.Constants.HANDLE_BACKGROUND_MESSAGE
 import com.shounakmulay.telephony.utils.Constants.MESSAGE
 import com.shounakmulay.telephony.utils.Constants.MESSAGE_BODY
+import com.shounakmulay.telephony.utils.Constants.SIM_SLOT
 import com.shounakmulay.telephony.utils.Constants.ON_MESSAGE
 import com.shounakmulay.telephony.utils.Constants.ORIGINATING_ADDRESS
 import com.shounakmulay.telephony.utils.Constants.SERVICE_CENTER_ADDRESS
@@ -42,6 +44,8 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         var foregroundSmsChannel: MethodChannel? = null
     }
 
+    private val subscriptionManager by lazy { getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager }
+
     override fun onReceive(context: Context, intent: Intent?) {
         ContextHolder.applicationContext = context.applicationContext
         val simSlotIndexLastSms: Int? = null
@@ -49,7 +53,7 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
 
         try {
-            val subscriptionId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
+            val subscriptionId = intent?.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
             val slotIndex = subscriptionManager
                     .activeSubscriptionInfoList
                     ?.find { it.subscriptionId == subscriptionId }
@@ -82,7 +86,7 @@ class IncomingSmsReceiver : BroadcastReceiver() {
             if (index > 0) {
                 messageMap[MESSAGE_BODY] = (messageMap[MESSAGE_BODY] as String)
                         .plus(smsMessage.messageBody.trim())
-                messageMap[SIM_SLOT] = simSlot!.toString()
+                messageMap[SIM_SLOT] = simSlot.toString()
             }
         }
         if (IncomingSmsHandler.isApplicationForeground(context)) {
