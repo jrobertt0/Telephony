@@ -42,32 +42,18 @@ class IncomingSmsReceiver : BroadcastReceiver() {
         var foregroundSmsChannel: MethodChannel? = null
     }
 
-    fun isAndroid11Plus() : Boolean {
-        return VERSION.SDK_INT >= VERSION_CODES.R
-    }
-
     override fun onReceive(context: Context, intent: Intent?) {
         ContextHolder.applicationContext = context.applicationContext
         val simSlotIndexLastSms: Int? = null
         val smsList = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         val messagesGroupedByOriginatingAddress = smsList.groupBy { it.originatingAddress }
+
         try {
-            val slotIndex: Int = when {
-                isAndroid11Plus() -> {
-                    intent.getIntExtra(SubscriptionManager.EXTRA_SLOT_INDEX, -100)
-                }
-                else -> {
-                    val subscriptionId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
-                    if (!hasPhonePermission()) {
-                        -100
-                    } else {
-                        subscriptionManager
-                                .activeSubscriptionInfoList
-                                ?.find { it.subscriptionId == subscriptionId }
-                                ?.simSlotIndex ?: -100
-                    }
-                }
-            }
+            val subscriptionId = intent.getIntExtra(SubscriptionManager.EXTRA_SUBSCRIPTION_INDEX, -100)
+            val slotIndex = subscriptionManager
+                    .activeSubscriptionInfoList
+                    ?.find { it.subscriptionId == subscriptionId }
+                    ?.simSlotIndex ?: -100
 
             simSlotIndexLastSms = if (slotIndex != -100) slotIndex.plus(1) else slotIndex // make it 1-index instead of 0-indexed so corresponds with physical slots 1 and 2
 
