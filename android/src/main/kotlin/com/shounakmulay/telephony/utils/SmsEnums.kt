@@ -33,7 +33,8 @@ enum class SmsAction(private val methodName: String) {
   REQUEST_PHONE_AND_SMS_PERMISSIONS("requestPhoneAndSmsPermissions"),
   OPEN_DIALER("openDialer"),
   DIAL_PHONE_NUMBER("dialPhoneNumber"),
-  NO_SUCH_METHOD("noSuchMethod");
+  NO_SUCH_METHOD("noSuchMethod"),
+  GET_MULTI_IMEI("getMultiImei");
 
   companion object {
     fun fromMethod(method: String): SmsAction {
@@ -72,6 +73,7 @@ enum class SmsAction(private val methodName: String) {
       GET_SIM_STATE,
       GET_SERVICE_STATE,
       GET_SIGNAL_STRENGTH,
+      GET_MULTI_IMEI,
       IS_NETWORK_ROAMING -> ActionType.GET
       REQUEST_SMS_PERMISSIONS,
       REQUEST_PHONE_PERMISSIONS,

@@ -500,6 +500,20 @@ class Telephony {
   }
 
   ///
+  /// Returns a List of IMEI or an empty List if there are no valid IMEI.
+  ///
+  /// ### Requires Android build version O
+  ///
+  /// Returns:
+  ///
+  /// [Future<List<String>>]
+  Future<List<String>> get getMultiImei async {
+    final List<String> multiImei =
+        await _foregroundChannel.invokeMethod(GET_MULTI_IMEI);
+    return multiImei;
+  }
+
+  ///
   /// Returns current voice service state.
   ///
   /// ### Requires Android build version 26 --> Android O

@@ -245,6 +245,21 @@ class SmsController(private val context: Context) {
         return serviceState?.state
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    @SuppressLint("MissingPermission")
+    fun getMultiImei(): ArrayList<String> {
+        val imeis = ArrayList<String>();
+        val telephonyManager: TelephonyManager = getTelephonyManager();
+        for (i in 1 downTo 0) {
+            try {
+                imeis.add(telephonyManager.getImei(i))
+            } catch (e: IllegalArgumentException) {
+                println(e.toString())
+            }
+        }
+        return imeis
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     fun getSignalStrength(): List<Int>? {
         val signalStrength = getTelephonyManager().signalStrength
