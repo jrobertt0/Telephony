@@ -1,18 +1,16 @@
 package com.shounakmulay.telephony.sms
 
 import android.Manifest
-import android.Manifest.permission.READ_PHONE_STATE
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.telephony.*
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
-import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getSystemService
 import com.shounakmulay.telephony.utils.Constants.ACTION_SMS_DELIVERED
 import com.shounakmulay.telephony.utils.Constants.ACTION_SMS_SENT
@@ -21,7 +19,7 @@ import com.shounakmulay.telephony.utils.Constants.SMS_DELIVERED_BROADCAST_REQUES
 import com.shounakmulay.telephony.utils.Constants.SMS_SENT_BROADCAST_REQUEST_CODE
 import com.shounakmulay.telephony.utils.Constants.SMS_TO
 import com.shounakmulay.telephony.utils.ContentUri
-import java.lang.RuntimeException
+import java.util.*
 
 
 class SmsController(private val context: Context) {
@@ -238,26 +236,51 @@ class SmsController(private val context: Context) {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    @RequiresPermission(allOf = [Manifest.permission.READ_PHONE_STATE])
-    // @RequiresPermission(allOf = [Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE])
+//    @RequiresPermission(allOf = [Manifest.permission.READ_PHONE_STATE])
+     @RequiresPermission(allOf = [Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE])
     fun getServiceState(): Int? {
         val serviceState = getTelephonyManager().serviceState
         return serviceState?.state
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     @SuppressLint("MissingPermission")
     fun getMultiImei(): ArrayList<String> {
         val imeis = ArrayList<String>();
-        val telephonyManager: TelephonyManager = getTelephonyManager();
-        for (i in 1 downTo 0) {
-            try {
-                imeis.add(telephonyManager.getImei(i))
-            } catch (e: IllegalArgumentException) {
-                println(e.toString())
+
+        try {
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+                getUUID(context)?.let { imeis.add(it) }
+            } else {
+                val telephonyManager: TelephonyManager = getTelephonyManager();
+                val phoneCount = telephonyManager.phoneCount
+                for (i in 0 until phoneCount) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                        imeis.add(telephonyManager.getImei(i)
+                    ) else
+                        imeis.add(telephonyManager.getDeviceId(i))
+                }
             }
+        } catch (ex: Exception) {
+            Log.e("Error", ex.toString())
+            return imeis
         }
+
         return imeis
+    }
+
+    @Synchronized
+    private fun getUUID(context: Context): String? {
+        val sharedPrefs = context.getSharedPreferences(
+            "UUID", Context.MODE_PRIVATE
+        )
+        var uniqueID = sharedPrefs.getString("UUID", null)
+        if (uniqueID == null) {
+            uniqueID = UUID.randomUUID().toString()
+            val editor = sharedPrefs.edit()
+            editor.putString("UUID", uniqueID)
+            editor.commit()
+        }
+        return uniqueID
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

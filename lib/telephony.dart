@@ -508,9 +508,10 @@ class Telephony {
   ///
   /// [Future<List<String>>]
   Future<List<String>> get getMultiImei async {
-    final List<String> multiImei =
+    final List<dynamic> multiImei =
         await _foregroundChannel.invokeMethod(GET_MULTI_IMEI);
-    return multiImei;
+
+    return multiImei.map((e) => e.toString()).toList();
   }
 
   ///

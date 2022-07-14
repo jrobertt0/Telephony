@@ -237,13 +237,7 @@ class SmsMethodCallHandler(
         SmsAction.GET_SIM_OPERATOR_NAME -> getSimOperatorName()
         SmsAction.GET_SIM_STATE -> getSimState()
         SmsAction.IS_NETWORK_ROAMING -> isNetworkRoaming()
-        SmsAction.GET_MULTI_IMEI -> {
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getMultiImei()
-          } else {
-            result.error("INCORRECT_SDK_VERSION", "getServiceState() can only be called on Android Q and above", null)
-          }
-        }
+        SmsAction.GET_MULTI_IMEI -> getMultiImei()
         SmsAction.GET_SIGNAL_STRENGTH -> {
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             getSignalStrength()
